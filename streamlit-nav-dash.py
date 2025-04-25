@@ -40,11 +40,17 @@ df = load_data()
 # ----------------------
 st.markdown(
     f"""
-    <h1 style='text-align: center; color: {TEXT_COLOR};'>📊 TrendNav AI: E-commerce Opportunity Scanner</h1>
-    <p style='text-align: center; color: #ccc;'>Identifying <strong>trending product demands</strong> using Reddit & Amazon QA, and mapping them against <strong>inventory signals</strong> to find high-opportunity areas for sellers.</p>
+    <div style="background-color:#d6f5f2; padding:20px; border-radius:12px; margin-bottom:15px;">
+        <h1 style='text-align: center; color: #0b6da4;'>📊 TrendNav AI: E-commerce Opportunity Scanner</h1>
+        <p style='text-align: center; font-size: 18px; color: #183642;'>
+            Identifying <strong>trending product demands</strong> using Reddit & Amazon QA,<br>
+            and mapping them against <strong>inventory signals</strong> to find high-opportunity areas for sellers.
+        </p>
+    </div>
     """,
-    unsafe_allow_html=True,
+    unsafe_allow_html=True
 )
+
 
 # ----------------------
 # Global Filters
@@ -168,23 +174,32 @@ with col_thresh2:
 # ----------------------
 st.markdown("#### 📦 High Opportunity Products (Low Stock + High Trend)")
 
+# Optional debug toggle
+debug_mode = st.checkbox("🔍 Show raw high opportunity candidates")
+
 high_opp = (
     df_filtered.groupby(['matched_product'])
     .agg(trend_score=('trend_score', 'sum'), avg_stock=('stock_level', 'mean'))
     .reset_index()
 )
-high_opp = high_opp[
-    (high_opp['avg_stock'] < low_stock_cutoff) & (high_opp['trend_score'] > high_trend_cutoff)
+
+if debug_mode:
+    st.dataframe(high_opp.rename(columns={'matched_product': 'Product Subcategory'}))
+
+# Filter
+high_opp_filtered = high_opp[
+    (high_opp['avg_stock'] < low_stock_cutoff) &
+    (high_opp['trend_score'] > high_trend_cutoff)
 ].sort_values("trend_score", ascending=False)
 
-if not high_opp.empty:
-    st.dataframe(high_opp.rename(columns={
+if not high_opp_filtered.empty:
+    st.dataframe(high_opp_filtered.rename(columns={
         'matched_product': 'Product Subcategory',
         'trend_score': 'Trend Score',
         'avg_stock': 'Avg Stock'
     }))
 else:
-    st.info("No high opportunity products matching current filters.")
+    st.warning("⚠️ No high opportunity products matching current filters. Try adjusting the sliders above.")
 
 # ----------------------
 # Section 5: Low Opportunity Products
