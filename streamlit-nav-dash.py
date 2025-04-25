@@ -10,7 +10,6 @@ import pandas as pd
 # In[3]:
 
 
-pip install streamlit
 
 # Convert timestamp to datetime
 df['timestamp'] = pd.to_datetime(df['timestamp'])
