@@ -17,7 +17,7 @@ st.markdown("""
     <style>
     /* Light background for the full app */
     .stApp {
-        background-color: #f8fbff;
+        background-color: #F7FAFF;
     }
 
     /* Customize the dropdown and selected tag chips */
