@@ -270,7 +270,7 @@ with right_col:
 ).properties(
     width=520,
     height=390,
-    background='#fafafa'  # ✅ PERFECT MATCH FROM YOUR TABLE
+    background='#FFFFFF'  # ✅ PERFECT MATCH FROM YOUR TABLE
 ).configure_axis(
     labelColor='#444',
     titleColor='#0b6da4'
