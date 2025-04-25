@@ -270,7 +270,7 @@ with right_col:
 ).properties(
     width=520,
     height=390,
-    background='#f0f6fa'  # soft light blue
+    background='#e6f0fa'  # match table-style background
 ).configure_axis(
     labelColor='#444',
     titleColor='#0b6da4'
@@ -278,7 +278,7 @@ with right_col:
     labelColor='#333',
     titleColor='#0b6da4'
 ).configure_view(
-    stroke=None  # no outer border
+    stroke=None
 )
     st.altair_chart(chart, use_container_width=True)
 
