@@ -270,7 +270,7 @@ with right_col:
 ).properties(
     width=520,
     height=390,
-    background='#f3f8fc'  # ✅ MATCHES LEFT TABLE BG
+    background='#fafafa'  # ✅ PERFECT MATCH FROM YOUR TABLE
 ).configure_axis(
     labelColor='#444',
     titleColor='#0b6da4'
@@ -280,6 +280,7 @@ with right_col:
 ).configure_view(
     stroke=None
 )
+
 
     st.altair_chart(chart, use_container_width=True)
 
