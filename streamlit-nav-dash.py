@@ -209,15 +209,15 @@ with right_col:
     ).properties(width=520, height=390)
     st.altair_chart(chart, use_container_width=True)
 
-# -----------------------
-# OPPORTUNITY ANALYSIS (Updated with Tabs + Styling)
+# -----------------------# -----------------------
+# OPPORTUNITY ANALYSIS (Tabs + Monthly Decline Trends)
 # -----------------------
 st.markdown("### 📦 Opportunity Analysis")
 
-# Capitalize for consistency
+# Capitalize for consistent display
 df['matched_product'] = df['matched_product'].str.title()
 
-# Recompute metrics (unfiltered)
+# Calculate stock and trend stats (unfiltered)
 median_stock = df['stock_level'].median()
 median_trend = df['trend_score'].median()
 
@@ -227,33 +227,30 @@ opportunity_df = (
     .reset_index()
 )
 
-high_opp = opportunity_df[(opportunity_df['avg_stock'] < median_stock) & (opportunity_df['trend_score'] > median_trend)]
+# Filter high opportunity: low stock, high trend
+high_opp = opportunity_df[
+    (opportunity_df['avg_stock'] < median_stock) & 
+    (opportunity_df['trend_score'] > median_trend)
+]
 
-# Declining Trends Logic
-# Add month column (if not already present)
+# Prepare Declining Trends — Month-over-Month
 df['month'] = df['timestamp'].dt.to_period('M').astype(str)
-
 monthly_trends = (
     df.groupby(['matched_product', 'month'])['trend_score']
     .sum()
     .reset_index()
     .sort_values(['matched_product', 'month'])
 )
-
-# Calculate MoM % change
 monthly_trends['pct_change'] = monthly_trends.groupby('matched_product')['trend_score'].pct_change()
 
-# Get the most recent month's decline
+# Most recent month's change
 recent_month_drop = (
     monthly_trends.groupby('matched_product').tail(1)
-    .query('pct_change < -0.2')  # 20% or more drop
+    .query('pct_change < -0.2')  # Drop > 20%
     .sort_values('pct_change')
 )
 
-# Tab Layout
-tab1, tab2 = st.tabs(["🟢 High Opportunity Products", "📉 Declining Trends"])
-
-# Style helpers
+# Reusable style helpers
 def center_bold_header():
     return [
         {'selector': 'th', 'props': [('text-align', 'center'), ('font-weight', 'bold')]},
@@ -264,6 +261,9 @@ def highlight_decline(val):
     color = 'red' if val < 0 else 'green'
     return f'color: {color}'
 
+# Layout with tabs
+tab1, tab2 = st.tabs(["🟢 High Opportunity Products", "📉 Declining Trends"])
+
 with tab1:
     st.caption("These products are trending but have relatively low stock.")
     if not high_opp.empty:
@@ -273,26 +273,31 @@ with tab1:
             'trend_score': 'Trend Score'
         })
         st.dataframe(
-            display_df.style.set_table_styles(center_bold_header()).format({'Avg Stock': '{:,.0f}', 'Trend Score': '{:,.0f}'}),
+            display_df
+            .style
+            .set_table_styles(center_bold_header())
+            .format({'Avg Stock': '{:,.0f}', 'Trend Score': '{:,.0f}'}),
             use_container_width=True
         )
     else:
         st.info("No high opportunity products found.")
 
 with tab2:
-    st.caption("Products with a significant drop in trend score over the last week.")
-    if not recent_drop.empty:
-        display_df = recent_drop.rename(columns={
+    st.caption("Products with a significant drop in trend score over the last month.")
+    if not recent_month_drop.empty:
+        display_df = recent_month_drop.rename(columns={
             'matched_product': 'Product Subcategory',
             'trend_score': 'Latest Trend Score',
             'pct_change': '% Change'
         })[['Product Subcategory', 'Latest Trend Score', '% Change']]
+
         st.dataframe(
-            display_df.style
-                .set_table_styles(center_bold_header())
-                .applymap(highlight_decline, subset=['% Change'])
-                .format({'Latest Trend Score': '{:,.0f}', '% Change': '{:.0%}'}),
+            display_df
+            .style
+            .set_table_styles(center_bold_header())
+            .applymap(highlight_decline, subset=['% Change'])
+            .format({'Latest Trend Score': '{:,.0f}', '% Change': '{:.0%}'}),
             use_container_width=True
         )
     else:
-        st.info("No declining trends detected this week.")
+        st.info("No declining trends detected this month.")
