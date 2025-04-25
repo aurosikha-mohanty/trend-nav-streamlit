@@ -3,7 +3,6 @@
 
 # In[19]:
 
-
 import streamlit as st
 import pandas as pd
 import altair as alt
@@ -21,6 +20,7 @@ def load_data():
     df['Date'] = df['timestamp'].dt.date
     df['Week'] = df['timestamp'].dt.strftime('%Y-%U')
     df['Month'] = df['timestamp'].dt.to_period('M').astype(str)
+    df['sentiment_label'] = df['sentiment_score'].apply(lambda x: 'Positive' if x == 1 else 'Negative' if x == -1 else 'Neutral')
     return df
 
 df = load_data()
@@ -47,14 +47,8 @@ time_view = st.sidebar.radio(
     ['Daily', 'Weekly', 'Monthly']
 )
 
-# Sentiment Mapping
-df['sentiment_label'] = df['sentiment_score'].apply(
-    lambda x: 'Positive' if x == 1 else 'Negative' if x == -1 else 'Neutral'
-)
-
 # Filter Logic
 filtered_df = df[df['listing_category'].isin(category_filter)]
-
 if 'All' not in sentiment_filter:
     filtered_df = filtered_df[filtered_df['sentiment_label'].isin(sentiment_filter)]
 
@@ -69,52 +63,63 @@ st.markdown(
 # --------------------
 # Top Trending Products
 # --------------------
-st.subheader("🔥 Top Trending Products")
+col1, col2 = st.columns([1.2, 1.8])
 
-top_products = (
-    filtered_df.groupby(['matched_product', 'listing_category'])
-    .agg(
-        total_mentions=('phrase_freq', 'sum'),
-        avg_sentiment=('sentiment_score', 'mean'),
-        trend_score=('trend_score', 'sum'),
-        avg_stock=('stock_level', 'mean')
+with col1:
+    st.subheader("🔥 Top Trending Products")
+
+    top_products = (
+        filtered_df.groupby(['matched_product', 'listing_category'])
+        .agg(
+            total_mentions=('phrase_freq', 'sum'),
+            avg_sentiment=('sentiment_score', 'mean'),
+            trend_score=('trend_score', 'sum'),
+            avg_stock=('stock_level', 'mean')
+        )
+        .reset_index()
+        .sort_values('trend_score', ascending=False)
+        .head(20)
     )
-    .reset_index()
-    .sort_values('trend_score', ascending=False)
-    .head(15)
-)
+    st.dataframe(top_products)
 
-st.dataframe(top_products)
+with col2:
+    st.subheader("📅 Trend Score Over Time")
+    time_col = 'Date' if time_view == 'Daily' else 'Week' if time_view == 'Weekly' else 'Month'
+
+    trend_time = (
+        filtered_df.groupby([time_col, 'listing_category'])
+        .agg(trend_score=('trend_score', 'sum'))
+        .reset_index()
+    )
+
+    chart = alt.Chart(trend_time).mark_line().encode(
+        x=alt.X(f'{time_col}:T' if time_view == 'Daily' else f'{time_col}:O', title=time_col),
+        y='trend_score:Q',
+        color='listing_category:N',
+        tooltip=[time_col, 'listing_category', 'trend_score']
+    ).properties(
+        width=800,
+        height=400
+    )
+
+    st.altair_chart(chart, use_container_width=True)
 
 # --------------------
-# 📈 Trend Over Time
+# 📚 Top Keywords for Each Product
 # --------------------
-st.subheader("📅 Trend Score Over Time")
+st.subheader("🔍 Top Clean Phrases (Keywords) by Product")
 
-if time_view == 'Daily':
-    time_col = 'Date'
-elif time_view == 'Weekly':
-    time_col = 'Week'
-else:
-    time_col = 'Month'
-
-trend_time = (
-    filtered_df.groupby([time_col, 'listing_category'])
-    .agg(trend_score=('trend_score', 'sum'))
-    .reset_index()
-)
-
-chart = alt.Chart(trend_time).mark_line().encode(
-    x=alt.X(f'{time_col}:T' if time_view == 'Daily' else f'{time_col}:O', title=time_col),
-    y='trend_score:Q',
-    color='listing_category:N',
-    tooltip=[time_col, 'listing_category', 'trend_score']
-).properties(
-    width=800,
-    height=400
-)
-
-st.altair_chart(chart, use_container_width=True)
+for product in top_products['matched_product'].unique():
+    st.markdown(f"**{product}**")
+    keywords = (
+        filtered_df[filtered_df['matched_product'] == product]
+        .groupby('clean_phrase')
+        .agg(freq=('phrase_freq', 'sum'))
+        .reset_index()
+        .sort_values('freq', ascending=False)
+        .head(5)
+    )
+    st.write(keywords)
 
 # --------------------
 # 💡 Inventory Opportunity Analysis
@@ -122,16 +127,18 @@ st.altair_chart(chart, use_container_width=True)
 st.subheader("📦 High Opportunity Products (Low Stock, High Trend)")
 
 opportunity_df = top_products.copy()
-opportunity_df = opportunity_df[opportunity_df['avg_stock'] < 50]  # tune threshold
+opportunity_df = opportunity_df[opportunity_df['avg_stock'] < opportunity_df['avg_stock'].quantile(0.25)]
 opportunity_df = opportunity_df.sort_values('trend_score', ascending=False)
 
-st.dataframe(opportunity_df[['matched_product', 'listing_category', 'trend_score', 'avg_stock']])
+if opportunity_df.empty:
+    st.info("No high-opportunity products found in current filter. Try adjusting the filters.")
+else:
+    st.dataframe(opportunity_df[['matched_product', 'listing_category', 'trend_score', 'avg_stock']])
 
 # --------------------
 # 🔁 Export Option
 # --------------------
 st.download_button("📥 Download Full Filtered Data", data=filtered_df.to_csv(index=False), file_name="trendnav_filtered.csv")
-
 
 # In[20]:
 
