@@ -238,33 +238,48 @@ with col_high:
 
 with col_low:
     st.markdown("#### 📉 Declining Trends")
-    st.caption("Products with a significant drop in trend score over the last week.")
+    st.caption("Products with a significant drop in trend score over the last **month**.")
 
-    # Prepare weekly trend
-    weekly_trends = (
-        df.groupby(['matched_product', 'week'])['trend_score']
+    # Monthly trend
+    df['month'] = df['timestamp'].dt.to_period('M').astype(str)
+    monthly_trends = (
+        df.groupby(['matched_product', 'month'])['trend_score']
         .sum()
         .reset_index()
-        .sort_values(['matched_product', 'week'])
+        .sort_values(['matched_product', 'month'])
     )
+    monthly_trends['pct_change'] = monthly_trends.groupby('matched_product')['trend_score'].pct_change()
 
-    # Calculate % change week over week
-    weekly_trends['pct_change'] = weekly_trends.groupby('matched_product')['trend_score'].pct_change()
-
-    # Get latest week per product
-    recent_drop = (
-        weekly_trends.groupby('matched_product').tail(1)
-        .query('pct_change < -0.2')  # at least 20% drop
+    recent_month_drop = (
+        monthly_trends.groupby('matched_product').tail(1)
+        .query('pct_change < -0.2')
         .sort_values('pct_change')
     )
 
-    if not recent_drop.empty:
+    if not recent_month_drop.empty:
+        display_df = recent_month_drop.rename(columns={
+            'matched_product': 'Product Subcategory',
+            'trend_score': 'Latest Trend Score',
+            'pct_change': '% Change'
+        })[['Product Subcategory', 'Latest Trend Score', '% Change']]
+
+        def color_decline(val):
+            color = 'red' if val < 0 else 'green'
+            return f'color: {color}'
+
+        def center_bold_header():
+            return [
+                {'selector': 'th', 'props': [('text-align', 'center'), ('font-weight', 'bold')]},
+                {'selector': 'td', 'props': [('text-align', 'center')]}
+            ]
+
         st.dataframe(
-            recent_drop.rename(columns={
-                'matched_product': 'Product Subcategory',
-                'trend_score': 'Latest Trend Score',
-                'pct_change': '% Change'
-            })[['Product Subcategory', 'Latest Trend Score', '% Change']]
+            display_df
+            .style
+            .set_table_styles(center_bold_header())
+            .applymap(color_decline, subset=['% Change'])
+            .format({'Latest Trend Score': '{:,.0f}', '% Change': '{:.0%}'}),
+            use_container_width=True
         )
     else:
-        st.info("No declining trends detected this week.")
+        st.info("No declining trends detected this month.")
