@@ -10,29 +10,33 @@ import altair as alt
 # PAGE CONFIG
 # -----------------------
 st.set_page_config(page_title="TrendNav AI", layout="wide", page_icon="📊")
-
 # -----------------------
-# CUSTOM CSS STYLES
+# CUSTOM CSS STYLES (UPDATED)
 # -----------------------
 st.markdown("""
     <style>
-    /* Background color for entire app */
+    /* Light background for the full app */
     .stApp {
-        background-color: #f2f6fa;
+        background-color: #f8fbff;
     }
 
-    /* Style radio and select widgets */
+    /* Customize the dropdown and selected tag chips */
     div[data-baseweb="select"] > div {
-        background-color: #e6f0fa; /* light blue dropdown background */
+        background-color: #e6f0fa;
         border: 1px solid #0b6da4;
         border-radius: 8px;
     }
 
-    div[data-baseweb="select"] div[role="combobox"] {
-        background-color: #e6f0fa; /* inside multiselect */
+    /* Multiselect selected tag styles */
+    span[data-baseweb="tag"] {
+        background-color: #0b6da4 !important;
+        color: white !important;
+        border-radius: 5px;
+        padding: 5px 8px;
+        font-weight: 500;
     }
 
-    /* Color headers of all dataframes */
+    /* Column header styling for all tables */
     thead tr th {
         background-color: #0b6da4 !important;
         color: white !important;
@@ -40,17 +44,18 @@ st.markdown("""
         text-align: center;
     }
 
-    /* Optional: change table body font */
+    /* Table cell alignment */
     tbody td {
         text-align: center;
     }
 
-    /* General UI text alignment */
+    /* Remove spacing from top */
     .block-container {
         padding-top: 2rem;
     }
     </style>
 """, unsafe_allow_html=True)
+
 
 # -----------------------
 # THEME COLORS
