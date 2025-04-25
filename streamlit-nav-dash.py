@@ -6,21 +6,21 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 
-# -----------------------
-# PAGE CONFIG — MUST BE FIRST
-# -----------------------
+# ------------
+# PAGE CONFIG
+# ------------
 st.set_page_config(page_title="TrendNav AI", layout="wide", page_icon="📊")
 
-# -----------------------
-# COLOR THEME
-# -----------------------
+# ------------
+# THEME COLORS
+# ------------
 BG_COLOR = "#f5fefd"
-CARD_COLOR = "#d6f5f2"
-TEXT_COLOR = "#0b6da4"
+CARD_COLOR = "#d0ebf9"
+TEXT_COLOR = "#003f5c"
 
-# -----------------------
+# ------------
 # LOAD DATA
-# -----------------------
+# ------------
 @st.cache_data
 def load_data():
     df = pd.read_csv("matched_df_final_filt.csv", parse_dates=['timestamp'])
@@ -34,24 +34,20 @@ def load_data():
     df['Date'] = df['timestamp'].dt.date
     df['Week'] = df['timestamp'].dt.strftime('%Y-%U')
     df['Month'] = df['timestamp'].dt.to_period('M').astype(str)
+    df = df[df['timestamp'].dt.year < 2025]  # Remove future data
     return df
 
 df = load_data()
 
-# -----------------------
+# ------------
 # HEADER
-# -----------------------
-st.markdown(
-    f"""
-    <h1 style='text-align: center; color: {TEXT_COLOR};'>📊 TrendNav AI: E-commerce Opportunity Scanner</h1>
-    <p style='text-align: center; color: #333;'>Identifying <strong>trending product demands</strong> using Reddit & Amazon QA, and mapping them against <strong>inventory signals</strong> to find high-opportunity areas for sellers.</p>
-    """,
-    unsafe_allow_html=True,
-)
+# ------------
+st.markdown(f"<h1 style='text-align: center; color: {TEXT_COLOR};'>📊 TrendNav AI: E-commerce Opportunity Scanner</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #333;'>Identifying <strong>trending product demands</strong> using Reddit & Amazon QA, and mapping them against <strong>inventory signals</strong> to find high-opportunity areas for sellers.</p>", unsafe_allow_html=True)
 
-# -----------------------
-# SENTIMENT FILTER (Global)
-# -----------------------
+# ------------
+# SENTIMENT FILTER
+# ------------
 sentiment_choice = st.radio(
     "🧠 Select Sentiment View:",
     options=['All', 'Positive', 'Neutral', 'Negative'],
@@ -64,23 +60,20 @@ if sentiment_choice != 'All':
 else:
     df_filtered = df.copy()
 
-# -----------------------
+# ------------
 # SMART SUMMARY
-# -----------------------
+# ------------
 summary_map = {
     'Positive': "🌿 Sentiment is strongly positive — these products are resonating well!",
     'Negative': "⚠️ Negative feedback signals product improvement potential.",
     'Neutral': "🟡 Moderate opinions — could go either way!",
     'All': "📊 Viewing combined sentiment — ideal for overall trend monitoring."
 }
-st.markdown(
-    f"<p style='text-align:center; color:#333; font-size: 18px;'>{summary_map.get(sentiment_choice)}</p>",
-    unsafe_allow_html=True
-)
+summary_text = summary_map.get(sentiment_choice)
 
-# -----------------------
-# SECTION 1: KPI METRICS
-# -----------------------
+# ------------
+# SECTION 1: KPI CARDS (LEFT)
+# ------------
 top_phrase = (
     df_filtered.groupby(['clean_phrase', 'matched_product'])
     .agg(total_mentions=('phrase_freq', 'sum'),
@@ -89,37 +82,11 @@ top_phrase = (
     .reset_index()
     .sort_values('trend_score', ascending=False)
 )
-
 top_row = top_phrase.iloc[0] if not top_phrase.empty else {}
 
-with st.container():
-    col1, col2 = st.columns([1, 3])
-
-    with col1:
-        st.markdown(f"""
-            <div style="background-color:{CARD_COLOR}; padding: 18px 20px; border-radius: 20px; margin-bottom: 20px;">
-                <h5 style="color:{TEXT_COLOR}; margin: 0;">🔑 Top Trending Keyword</h5>
-                <h3 style="margin: 5px 0;">{top_row['clean_phrase'] if not top_phrase.empty else 'N/A'}</h3>
-                <p><b>Subcategory:</b> {top_row['matched_product'] if not top_phrase.empty else 'N/A'}</p>
-            </div>
-            <div style="background-color:{CARD_COLOR}; padding: 18px 20px; border-radius: 20px; margin-bottom: 20px;">
-                <h5 style="color:{TEXT_COLOR}; margin: 0;">📈 Total Mentions</h5>
-                <h3 style="margin: 5px 0;">{int(top_row['total_mentions']) if not top_phrase.empty else '0'}</h3>
-            </div>
-            <div style="background-color:{CARD_COLOR}; padding: 18px 20px; border-radius: 20px;">
-                <h5 style="color:{TEXT_COLOR}; margin: 0;">💬 Avg Sentiment</h5>
-                <h3 style="margin: 5px 0;">{round(top_row['avg_sentiment'], 2) if not top_phrase.empty else '0.0'}</h3>
-            </div>
-        """, unsafe_allow_html=True)
-
-    with col2:
-        st.markdown("")
-
-# -----------------------
-# SECTION 2: 🔥 Top Trending Products (Drilldown Capable)
-# -----------------------
-st.subheader("🔥 Top Trending Subcategories")
-
+# ------------
+# SECTION 2: TOP SUBCATEGORIES + KEYWORDS
+# ------------
 top_subcats = (
     df_filtered.groupby('matched_product')
     .agg(total_mentions=('phrase_freq', 'sum'),
@@ -141,38 +108,57 @@ keywords = (
     .sort_values('trend_score', ascending=False)
     .head(10)
 )
+keywords.columns = ['Product keywords', 'Mentions', 'Avg sentiment', 'Trend score']
 
-st.markdown(f"**Top Product Keywords in _{selected_subcat}_**")
-st.dataframe(keywords)
-
-# -----------------------
-# SECTION 3: 📈 Trend Over Time
-# -----------------------
-st.subheader("📈 Trend Score Over Time")
-
+# ------------
+# SECTION 3: TRENDLINE GRAPH
+# ------------
 time_view = st.radio("Select Time View:", ['Daily', 'Weekly', 'Monthly'], horizontal=True)
-
-if time_view == 'Daily':
-    time_col = 'Date'
-elif time_view == 'Weekly':
-    time_col = 'Week'
-else:
-    time_col = 'Month'
-
+time_col = {'Daily': 'Date', 'Weekly': 'Week', 'Monthly': 'Month'}[time_view]
 trend_time = (
     df_filtered.groupby([time_col, 'matched_product'])
     .agg(trend_score=('trend_score', 'sum'))
     .reset_index()
 )
-
-chart = alt.Chart(trend_time).mark_line().encode(
-    x=alt.X(f'{time_col}:T' if time_view == 'Daily' else f'{time_col}:O', title=time_col),
+trend_chart = alt.Chart(trend_time).mark_line().encode(
+    x=alt.X(f'{time_col}:T' if time_view == 'Date' else f'{time_col}:O', title=time_col),
     y='trend_score:Q',
     color='matched_product:N',
     tooltip=[time_col, 'matched_product', 'trend_score']
-).properties(
-    width=900,
-    height=400
-)
+).properties(width=500, height=400)
 
-st.altair_chart(chart, use_container_width=True)
+# ------------
+# FINAL LAYOUT
+# ------------
+col1, col2, col3 = st.columns([1, 1.4, 2])
+
+with col1:
+    st.markdown(f"""
+        <div style="background-color:{CARD_COLOR}; padding:12px 18px; border-radius:15px; margin-bottom:15px;">
+            <h5 style="color:{TEXT_COLOR}; margin:0;">🔑 Top Trending Keyword</h5>
+            <h4 style="margin:5px 0;">{top_row['clean_phrase'] if not top_phrase.empty else 'N/A'}</h4>
+            <p><b>Subcategory:</b> {top_row['matched_product'] if not top_phrase.empty else 'N/A'}</p>
+        </div>
+        <div style="background-color:{CARD_COLOR}; padding:12px 18px; border-radius:15px; margin-bottom:15px;">
+            <h5 style="color:{TEXT_COLOR}; margin:0;">📈 Total Mentions</h5>
+            <h4 style="margin:5px 0;">{int(top_row['total_mentions']) if not top_phrase.empty else '0'}</h4>
+        </div>
+        <div style="background-color:{CARD_COLOR}; padding:12px 18px; border-radius:15px;">
+            <h5 style="color:{TEXT_COLOR}; margin:0;">💬 Avg Sentiment</h5>
+            <h4 style="margin:5px 0;">{round(top_row['avg_sentiment'], 2) if not top_phrase.empty else '0.0'}</h4>
+        </div>
+    """, unsafe_allow_html=True)
+
+with col2:
+    st.markdown("### 🔥 Top Trending Products")
+    st.dataframe(keywords)
+
+with col3:
+    st.markdown("### 📈 Trend Score Over Time")
+    st.altair_chart(trend_chart, use_container_width=True)
+
+# Shared summary below sections
+st.markdown(
+    f"<p style='text-align:center; color:#333; font-size: 16px;'>{summary_text}</p>",
+    unsafe_allow_html=True
+)
