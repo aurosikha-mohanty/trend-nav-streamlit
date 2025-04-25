@@ -200,9 +200,34 @@ with col_high:
         st.info("No high opportunity products found.")
 
 with col_low:
-    st.markdown("#### 🔴 Low Opportunity Products")
-    st.caption("These products have high stock but are not trending.")
-    if not low_opp.empty:
-        st.dataframe(low_opp.rename(columns={'matched_product': 'Product Subcategory', 'avg_stock': 'Avg Stock', 'trend_score': 'Trend Score'}))
+    st.markdown("#### 📉 Declining Trends")
+    st.caption("Products with a significant drop in trend score over the last week.")
+
+    # Prepare weekly trend
+    weekly_trends = (
+        df.groupby(['matched_product', 'week'])['trend_score']
+        .sum()
+        .reset_index()
+        .sort_values(['matched_product', 'week'])
+    )
+
+    # Calculate % change week over week
+    weekly_trends['pct_change'] = weekly_trends.groupby('matched_product')['trend_score'].pct_change()
+
+    # Get latest week per product
+    recent_drop = (
+        weekly_trends.groupby('matched_product').tail(1)
+        .query('pct_change < -0.2')  # at least 20% drop
+        .sort_values('pct_change')
+    )
+
+    if not recent_drop.empty:
+        st.dataframe(
+            recent_drop.rename(columns={
+                'matched_product': 'Product Subcategory',
+                'trend_score': 'Latest Trend Score',
+                'pct_change': '% Change'
+            })[['Product Subcategory', 'Latest Trend Score', '% Change']]
+        )
     else:
-        st.info("No low opportunity products found.")
+        st.info("No declining trends detected this week.")
