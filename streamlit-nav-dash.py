@@ -120,7 +120,21 @@ with col2:
 
 with col3:
     all_subcats = sorted(df['matched_product'].dropna().unique())
-    selected_subcat = st.selectbox("🧵 Subcategory:", options=["All"] + all_subcats, index=0)
+    # Multiselect dropdown sorted by trend score
+    sorted_subcats = (
+        df.groupby('matched_product')['trend_score']
+        .sum()
+        .sort_values(ascending=False)
+        .index.tolist()
+    )
+
+    selected_subcats = st.multiselect(
+        "🧵 Subcategory:",
+        options=sorted_subcats,
+        default=sorted_subcats[:5],  # Optional: pre-select top 5
+        help="Filter by one or more top-ranked subcategories"
+    )
+
     
 # -----------------------
 # APPLY FILTERS to create df_filtered
@@ -130,8 +144,9 @@ df_filtered = df.copy()
 if sentiment_choice != 'All':
     df_filtered = df_filtered[df_filtered['sentiment_label'] == sentiment_choice]
 
-if selected_subcat != "All":
-    df_filtered = df_filtered[df_filtered['matched_product'] == selected_subcat]
+if selected_subcats:
+    df_filtered = df_filtered[df_filtered['matched_product'].isin(selected_subcats)]
+
 
 # Apply time view
 if time_choice == 'Weekly':
