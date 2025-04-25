@@ -5,6 +5,7 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
+st.set_page_config(page_title="TrendNav AI", layout="wide", page_icon="📊")  # ✅ Must be before any other st.* calls
 
 # -----------------------
 # THEME COLORS
