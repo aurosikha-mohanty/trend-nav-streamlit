@@ -12,6 +12,47 @@ import altair as alt
 st.set_page_config(page_title="TrendNav AI", layout="wide", page_icon="📊")
 
 # -----------------------
+# CUSTOM CSS STYLES
+# -----------------------
+st.markdown("""
+    <style>
+    /* Background color for entire app */
+    .stApp {
+        background-color: #f2f6fa;
+    }
+
+    /* Style radio and select widgets */
+    div[data-baseweb="select"] > div {
+        background-color: #e6f0fa; /* light blue dropdown background */
+        border: 1px solid #0b6da4;
+        border-radius: 8px;
+    }
+
+    div[data-baseweb="select"] div[role="combobox"] {
+        background-color: #e6f0fa; /* inside multiselect */
+    }
+
+    /* Color headers of all dataframes */
+    thead tr th {
+        background-color: #0b6da4 !important;
+        color: white !important;
+        font-weight: bold !important;
+        text-align: center;
+    }
+
+    /* Optional: change table body font */
+    tbody td {
+        text-align: center;
+    }
+
+    /* General UI text alignment */
+    .block-container {
+        padding-top: 2rem;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# -----------------------
 # THEME COLORS
 # -----------------------
 CARD_COLOR = "#d6f5f2"
