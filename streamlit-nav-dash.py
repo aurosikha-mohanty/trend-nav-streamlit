@@ -263,11 +263,23 @@ with right_col:
         .reset_index()
     )
     chart = alt.Chart(trend_data).mark_line().encode(
-        x=alt.X('time_unit:T', title='Date'),
-        y=alt.Y('trend_score:Q', title='Trend Score'),
-        color='matched_product:N',
-        tooltip=['time_unit:T', 'matched_product:N', 'trend_score:Q']
-    ).properties(width=520, height=390)
+    x=alt.X('time_unit:T', title='Date', axis=alt.Axis(grid=False)),
+    y=alt.Y('trend_score:Q', title='Trend Score', axis=alt.Axis(grid=False)),
+    color='matched_product:N',
+    tooltip=['time_unit:T', 'matched_product:N', 'trend_score:Q']
+).properties(
+    width=520,
+    height=390,
+    background='#f0f6fa'  # soft light blue
+).configure_axis(
+    labelColor='#444',
+    titleColor='#0b6da4'
+).configure_legend(
+    labelColor='#333',
+    titleColor='#0b6da4'
+).configure_view(
+    stroke=None  # no outer border
+)
     st.altair_chart(chart, use_container_width=True)
 
 # -----------------------
