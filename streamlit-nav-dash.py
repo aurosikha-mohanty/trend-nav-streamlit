@@ -52,17 +52,19 @@ st.markdown(
 # -----------------------
 # FILTERS
 # -----------------------
+
 left_filter, right_filter = st.columns([1.5, 2])
 with left_filter:
     sentiment_choice = st.radio("🧠 Sentiment Filter:", ['All', 'Positive', 'Neutral', 'Negative'], horizontal=True, index=0)
 with right_filter:
-    selected_subcats = st.multiselect("🧵 Product Subcategories:", sorted(df['matched_product'].dropna().unique()),
-                                      default=sorted(df['matched_product'].dropna().unique())[:10])
+    all_subcats = sorted(df['matched_product'].dropna().unique())
+    selected_subcat = st.selectbox("🧵 Product Subcategory:", options=["All"] + all_subcats, index=0)
 
 df_filtered = df.copy()
 if sentiment_choice != 'All':
     df_filtered = df_filtered[df_filtered['sentiment_label'] == sentiment_choice]
-df_filtered = df_filtered[df_filtered['matched_product'].isin(selected_subcats)]
+if selected_subcat != "All":
+    df_filtered = df_filtered[df_filtered['matched_product'] == selected_subcat]
 
 # -----------------------
 # TIME FILTER
@@ -89,39 +91,45 @@ st.markdown(f"<p style='text-align:center; color:#333;'>{summary_map.get(sentime
 # -----------------------
 # KPI CARDS (HORIZONTAL)
 # -----------------------
-top_phrase = (
-    df_filtered.groupby(['clean_phrase', 'matched_product'])
+# KPIs should use unfiltered data
+top_phrase_unfiltered = (
+    df.groupby(['clean_phrase', 'matched_product'])
     .agg(total_mentions=('phrase_freq', 'sum'), avg_sentiment=('sentiment_score', 'mean'), trend_score=('trend_score', 'sum'))
     .reset_index()
     .sort_values('trend_score', ascending=False)
 )
-top_row = top_phrase.iloc[0] if not top_phrase.empty else {}
+top_row_unfiltered = top_phrase_unfiltered.iloc[0] if not top_phrase_unfiltered.empty else {}
 
 kpi1, kpi2, kpi3 = st.columns(3)
+
 with kpi1:
+    keyword = top_row_unfiltered['clean_phrase'] if not top_phrase_unfiltered.empty else 'N/A'
+    subcat = top_row_unfiltered['matched_product'] if not top_phrase_unfiltered.empty else ''
     st.markdown(f"""
-    <div style="background-color:{CARD_COLOR}; padding:15px; border-radius:12px;">
+    <div style="background-color:{CARD_COLOR}; padding:15px; height:140px; border-radius:12px;">
         <h5 style="color:{TEXT_COLOR};">Top Keyword</h5>
-        <h3>{top_row['clean_phrase'] if not top_phrase.empty else 'N/A'}</h3>
-        <p><b>Subcategory:</b> {top_row['matched_product'] if not top_phrase.empty else 'N/A'}</p>
+        <h3>{keyword} <span style='font-size: 16px; color: #777;'>({subcat})</span></h3>
     </div>
     """, unsafe_allow_html=True)
 
 with kpi2:
+    total_mentions = int(top_row_unfiltered['total_mentions']) if not top_phrase_unfiltered.empty else 0
     st.markdown(f"""
-    <div style="background-color:{CARD_COLOR}; padding:15px; border-radius:12px;">
+    <div style="background-color:{CARD_COLOR}; padding:15px; height:140px; border-radius:12px;">
         <h5 style="color:{TEXT_COLOR};">Total Mentions</h5>
-        <h3>{int(top_row['total_mentions']) if not top_phrase.empty else 0}</h3>
+        <h3>{total_mentions}</h3>
     </div>
     """, unsafe_allow_html=True)
 
 with kpi3:
+    avg_sentiment = round(top_row_unfiltered['avg_sentiment'], 2) if not top_phrase_unfiltered.empty else 0.0
     st.markdown(f"""
-    <div style="background-color:{CARD_COLOR}; padding:15px; border-radius:12px;">
+    <div style="background-color:{CARD_COLOR}; padding:15px; height:140px; border-radius:12px;">
         <h5 style="color:{TEXT_COLOR};">Avg Sentiment</h5>
-        <h3>{round(top_row['avg_sentiment'], 2) if not top_phrase.empty else 0.0}</h3>
+        <h3>{avg_sentiment}</h3>
     </div>
     """, unsafe_allow_html=True)
+
 
 # -----------------------
 # TRENDING TABLE + CHART
