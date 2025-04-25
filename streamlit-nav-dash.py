@@ -42,51 +42,12 @@ df = load_data()
 st.markdown(
     f"""
     <h1 style='text-align: center; color: {TEXT_COLOR};'>📊 TrendNav AI: E-commerce Opportunity Scanner</h1>
-    <p style='text-align: center; color: {SUMMARY_COLOR};'>
+    <p style='text-align: center; color: {SUMMARY_COLOR}; font-size:20px;'>
         Identifying <strong>trending product demands</strong> using Reddit & Amazon QA,
         and mapping them against <strong>inventory signals</strong> to find high-opportunity areas for sellers.
     </p>
     """, unsafe_allow_html=True
 )
-
-# -----------------------
-# FILTERS
-# -----------------------
-
-left_filter, right_filter = st.columns([1.5, 2])
-with left_filter:
-    sentiment_choice = st.radio("🧠 Sentiment Filter:", ['All', 'Positive', 'Neutral', 'Negative'], horizontal=True, index=0)
-with right_filter:
-    all_subcats = sorted(df['matched_product'].dropna().unique())
-    selected_subcat = st.selectbox("🧵 Product Subcategory:", options=["All"] + all_subcats, index=0)
-
-df_filtered = df.copy()
-if sentiment_choice != 'All':
-    df_filtered = df_filtered[df_filtered['sentiment_label'] == sentiment_choice]
-if selected_subcat != "All":
-    df_filtered = df_filtered[df_filtered['matched_product'] == selected_subcat]
-
-# -----------------------
-# TIME FILTER
-# -----------------------
-time_choice = st.radio("⏱️ Time View:", ['Daily', 'Weekly', 'Monthly'], horizontal=True)
-if time_choice == 'Weekly':
-    df_filtered['time_unit'] = df_filtered['week']
-elif time_choice == 'Monthly':
-    df_filtered['time_unit'] = df_filtered['month']
-else:
-    df_filtered['time_unit'] = df_filtered['date']
-
-# -----------------------
-# SUMMARY LINE
-# -----------------------
-summary_map = {
-    'Positive': "🌿 Sentiment is strongly positive — these products are resonating well!",
-    'Negative': "⚠️ Negative feedback signals product improvement potential.",
-    'Neutral': "🟡 Moderate opinions — could go either way!",
-    'All': "📊 Viewing combined sentiment — ideal for overall trend monitoring."
-}
-st.markdown(f"<p style='text-align:center; color:#333;'>{summary_map.get(sentiment_choice)}</p>", unsafe_allow_html=True)
 
 # -----------------------
 # KPI CARDS (HORIZONTAL)
@@ -131,9 +92,85 @@ with kpi3:
     """, unsafe_allow_html=True)
 
 
+
+# -----------------------
+# FILTERS
+# -----------------------
+# one space row to make the space 
+st.markdown("<br>", unsafe_allow_html=True)
+st.markdown("<br>", unsafe_allow_html=True)
+st.markdown("<br>", unsafe_allow_html=True)
+st.markdown(
+    """
+    <p style='text-align:center; font-size:20px; color:#333;'>
+    💡 Want to see what people <strong>love</strong> or <strong>complain</strong> about?  
+    Use the filters to explore trending products by sentiment.
+    </p>
+    """,
+    unsafe_allow_html=True
+)
+# 3 filters in a row
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    sentiment_choice = st.radio("🧠 Sentiment:", ['All', 'Positive', 'Neutral', 'Negative'], horizontal=True, index=0)
+
+with col2:
+    time_choice = st.radio("⏱️ Time View:", ['Daily', 'Weekly', 'Monthly'], horizontal=True)
+
+with col3:
+    all_subcats = sorted(df['matched_product'].dropna().unique())
+    selected_subcat = st.selectbox("🧵 Subcategory:", options=["All"] + all_subcats, index=0)
+    
+# -----------------------
+# APPLY FILTERS to create df_filtered
+# -----------------------
+df_filtered = df.copy()
+
+if sentiment_choice != 'All':
+    df_filtered = df_filtered[df_filtered['sentiment_label'] == sentiment_choice]
+
+if selected_subcat != "All":
+    df_filtered = df_filtered[df_filtered['matched_product'] == selected_subcat]
+
+# Apply time view
+if time_choice == 'Weekly':
+    df_filtered['time_unit'] = df_filtered['week']
+elif time_choice == 'Monthly':
+    df_filtered['time_unit'] = df_filtered['month']
+else:
+    df_filtered['time_unit'] = df_filtered['date']
+
+# -----------------------
+# TIME FILTER
+# -----------------------
+# time_choice = st.radio("⏱️ Time View:", ['Daily', 'Weekly', 'Monthly'], horizontal=True)
+if time_choice == 'Weekly':
+    df_filtered['time_unit'] = df_filtered['week']
+elif time_choice == 'Monthly':
+    df_filtered['time_unit'] = df_filtered['month']
+else:
+    df_filtered['time_unit'] = df_filtered['date']
+
+# -----------------------
+# SUMMARY LINE
+# -----------------------
+st.markdown("<br>", unsafe_allow_html=True)
+
+summary_map = {
+    'Positive': "🌿 Sentiment is strongly positive — these products are resonating well!",
+    'Negative': "⚠️ Negative feedback signals product improvement potential.",
+    'Neutral': "🟡 Moderate opinions — could go either way!",
+    'All': "📊 Viewing combined sentiment — ideal for overall trend monitoring."
+}
+st.markdown(f"<p style='text-align:center; color:#333; font-size:20px;'>{summary_map.get(sentiment_choice)}</p>", unsafe_allow_html=True)
+
+
 # -----------------------
 # TRENDING TABLE + CHART
 # -----------------------
+st.markdown("<br>", unsafe_allow_html=True)
+
 left_col, right_col = st.columns([2, 2.2])
 
 with left_col:
