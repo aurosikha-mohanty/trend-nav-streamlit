@@ -230,16 +230,23 @@ opportunity_df = (
 high_opp = opportunity_df[(opportunity_df['avg_stock'] < median_stock) & (opportunity_df['trend_score'] > median_trend)]
 
 # Declining Trends Logic
-weekly_trends = (
-    df.groupby(['matched_product', 'week'])['trend_score']
+# Add month column (if not already present)
+df['month'] = df['timestamp'].dt.to_period('M').astype(str)
+
+monthly_trends = (
+    df.groupby(['matched_product', 'month'])['trend_score']
     .sum()
     .reset_index()
-    .sort_values(['matched_product', 'week'])
+    .sort_values(['matched_product', 'month'])
 )
-weekly_trends['pct_change'] = weekly_trends.groupby('matched_product')['trend_score'].pct_change()
-recent_drop = (
-    weekly_trends.groupby('matched_product').tail(1)
-    .query('pct_change < -0.2')
+
+# Calculate MoM % change
+monthly_trends['pct_change'] = monthly_trends.groupby('matched_product')['trend_score'].pct_change()
+
+# Get the most recent month's decline
+recent_month_drop = (
+    monthly_trends.groupby('matched_product').tail(1)
+    .query('pct_change < -0.2')  # 20% or more drop
     .sort_values('pct_change')
 )
 
